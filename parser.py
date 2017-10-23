@@ -15,33 +15,33 @@ from pyparsing import Literal, CaselessLiteral, Word, delimitedList, Optional, \
 
 # Define SQL tokens
 selectStmt = Forward()
-SELECT = Keyword("select", caseless=True)
-FROM = Keyword("from", caseless=True)
-WHERE = Keyword("where", caseless=True)
-AS = Keyword("as", caseless=True)
-UNION = Keyword("union", caseless=True)
-INTERSECT = Keyword("intersect", caseless=True)
-EXCEPT = Keyword("except", caseless=True)
-COUNT = Keyword("count", caseless=True)
-MAX = Keyword("max", caseless=True)
-AVG = Keyword("avg", caseless=True)
-SUM = Keyword("sum", caseless=True)
+SELECT = Keyword("select", caseless=True).addParseAction(upcaseTokens)
+FROM = Keyword("from", caseless=True).addParseAction(upcaseTokens)
+WHERE = Keyword("where", caseless=True).addParseAction(upcaseTokens)
+AS = Keyword("as", caseless=True).addParseAction(upcaseTokens)
+UNION = Keyword("union", caseless=True).addParseAction(upcaseTokens)
+INTERSECT = Keyword("intersect", caseless=True).addParseAction(upcaseTokens)
+EXCEPT = Keyword("except", caseless=True).addParseAction(upcaseTokens)
+COUNT = Keyword("count(", caseless=True).addParseAction(upcaseTokens)
+MAX = Keyword("max(", caseless=True).addParseAction(upcaseTokens)
+AVG = Keyword("avg(", caseless=True).addParseAction(upcaseTokens)
+SUM = Keyword("sum(", caseless=True).addParseAction(upcaseTokens)
 
 ident = Word( alphas, alphanums + "_$" ).setName("identifier")
 columnName = ( delimitedList( ident, ".", combine=True ) ).setName("column name").addParseAction(upcaseTokens)
 columnNameList = Group( delimitedList( columnName ))
 tableName = ( delimitedList( ident, ".", combine=True ) ).setName("table name").addParseAction(upcaseTokens)
-tableNameAs = ( delimitedList( ident + " " + AS + " " + ident, ".", combine=True ) ).setName("table name").addParseAction(upcaseTokens)
 tableNameList = Group( delimitedList( tableName ) )
-tableNameAsList = Group( delimitedList( tableNameAs ) )
+funcs = (COUNT | MAX | AVG | SUM)
+funcsList = Group( delimitedList( funcs + columnName + ")" ) )
 
 whereExpression = Forward()
-and_ = Keyword("and", caseless=True)
-or_ = Keyword("or", caseless=True)
-in_ = Keyword("in", caseless=True)
-GROUP_BY = Keyword("group by", caseless=True)
-HAVING = Keyword("having", caseless=True)
-CONTAINS = Keyword("contains", caseless=True)
+and_ = Keyword("and", caseless=True).addParseAction(upcaseTokens)
+or_ = Keyword("or", caseless=True).addParseAction(upcaseTokens)
+in_ = Keyword("in", caseless=True).addParseAction(upcaseTokens)
+GROUP_BY = Keyword("group by", caseless=True).addParseAction(upcaseTokens)
+HAVING = Keyword("having", caseless=True).addParseAction(upcaseTokens)
+CONTAINS = Keyword("contains", caseless=True).addParseAction(upcaseTokens)
 
 E = CaselessLiteral("E")
 binop = oneOf("= != < > >= <= eq ne lt le gt ge", caseless=True)
@@ -54,24 +54,24 @@ intNum = Combine( Optional(arithSign) + Word( nums ) +
 
 columnRval = realNum | intNum | quotedString | columnName
 whereCondition = Group(
-    ( columnName + binop + columnRval ) |
+    ( columnName + binop + columnRval ) | # TODO - Add functionality so Count(F) = 4 etc. works
     ( columnName + in_ + "(" + delimitedList( columnRval ) + ")" ) |
     ( columnName + in_ + "(" + selectStmt + ")" ) |
     ( "(" + whereExpression + ")" )
     )
-whereExpression << whereCondition + ZeroOrMore( ( and_ | or_ ) + whereExpression ) 
+whereExpression << whereCondition + Optional(Group(Group(GROUP_BY + columnName) + Optional(Group(HAVING + (columnName + binop + columnRval))))) + ZeroOrMore( ( and_ | or_ ) + whereExpression ) 
 
-# Define the SQL grammar
-selectStmt <<= (SELECT + ('*' | columnNameList)("columns") + \
-                FROM + (tableNameAsList | tableNameList)( "tables" ) + \
+# Define the SQL grammar    TODO - make funcsList work
+selectStmt <<= (SELECT + ('*' | Group(columnNameList + Optional(AS + ident)) | funcsList)("columns") + \
+                FROM + Group(tableNameList + Optional(AS + ident))( "tables" ) + \
                 Optional(Group(WHERE + whereExpression), "")("where")) + \
-                Optional((UNION + selectStmt)("union") | (INTERSECT + selectStmt)("intersect") | (EXCEPT + selectStmt)("except")) 
+                Optional((UNION + selectStmt)("union") | (INTERSECT + selectStmt)("intersect") | (EXCEPT + selectStmt)("except") | (CONTAINS + selectStmt)("contains")) 
 
-SQLParser = selectStmt | ("(" + selectStmt + ")")
+SQLParser = selectStmt # TODO - make paranthesies optional around a selectStmt (test h)
 
 # Tests
 if __name__ == "__main__":
-    test = "SELECT S.sname FROM Sailors AS S where S.sid IN ((SELECT R.sid FROM Reserve AS R, Boats AS B WHERE R.bid = B.bid AND B.color = 'red') INTERSECT (SELECT R2.sid FROM Reserve AS R2, Boats AS B2 WHERE R2.bid = B2.bid AND B2.color = 'green'))"
+    test = "SELECT D.sdf AS something FROM Sailors AS S2 WHERE R.sid = 2 and S2.rating = 10 GROUP BY D.sdf Having D.sdf > 5"
     try:
         print(test, "\n-----\n", SQLParser.parseString(test))
     except Exception as e:
