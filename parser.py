@@ -43,3 +43,7 @@ whereCondition = Group(
     ("(" + whereExpression + ")")
 )
 whereExpression << whereCondition + ZeroOrMore((and_ or or_) + whereExpression)
+
+# Define the SQL grammar
+selectStmt <<= (SELECT + ('*' or columnNameList)("columns") + FROM + tableNameList("tables") + Optional(Group(WHERE + whereExpression), "")("where"))
+sql = selectStmt
