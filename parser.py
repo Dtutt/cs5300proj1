@@ -4,7 +4,7 @@
 #   -   Trouble matching some single quoted strings, if test input is copy and pasted from website, 
 #       the single quotes used are unicode right/left single quotation mark, if typed from my keyboard,
 #       it is unicode apostrophe.
-#
+# 
 #
 #
 
@@ -22,18 +22,18 @@ AS = Keyword("as", caseless=True).addParseAction(upcaseTokens)
 UNION = Keyword("union", caseless=True).addParseAction(upcaseTokens)
 INTERSECT = Keyword("intersect", caseless=True).addParseAction(upcaseTokens)
 EXCEPT = Keyword("except", caseless=True).addParseAction(upcaseTokens)
-COUNT = Keyword("count(", caseless=True).addParseAction(upcaseTokens)
-MAX = Keyword("max(", caseless=True).addParseAction(upcaseTokens)
-AVG = Keyword("avg(", caseless=True).addParseAction(upcaseTokens)
-SUM = Keyword("sum(", caseless=True).addParseAction(upcaseTokens)
+COUNT = Keyword("count", caseless=True).addParseAction(upcaseTokens)
+MAX = Keyword("max", caseless=True).addParseAction(upcaseTokens)
+AVG = Keyword("avg", caseless=True).addParseAction(upcaseTokens)
+SUM = Keyword("sum", caseless=True).addParseAction(upcaseTokens)
 
 ident = Word( alphas, alphanums + "_$" ).setName("identifier")
 columnName = ( delimitedList( ident, ".", combine=True ) ).setName("column name").addParseAction(upcaseTokens)
 columnNameList = Group( delimitedList( columnName ))
 tableName = ( delimitedList( ident, ".", combine=True ) ).setName("table name").addParseAction(upcaseTokens)
-tableNameList = Group( delimitedList( tableName ) )
+tableNameAs = ( delimitedList( ident + " " + AS + " " + ident, ",", combine=True ) ).setName("table name").addParseAction(upcaseTokens)
+tableNameList = delimitedList( tableName )
 funcs = (COUNT | MAX | AVG | SUM)
-funcsList = Group( delimitedList( funcs + columnName + ")" ) )
 
 whereExpression = Forward()
 and_ = Keyword("and", caseless=True).addParseAction(upcaseTokens)
@@ -59,11 +59,11 @@ whereCondition = Group(
     ( columnName + in_ + "(" + selectStmt + ")" ) |
     ( "(" + whereExpression + ")" )
     )
-whereExpression << whereCondition + Optional(Group(Group(GROUP_BY + columnName) + Optional(Group(HAVING + (columnName + binop + columnRval))))) + ZeroOrMore( ( and_ | or_ ) + whereExpression ) 
+whereExpression << whereCondition + Optional(Group(GROUP_BY + columnName + Optional(HAVING + Group(columnName + binop + columnRval)))) + ZeroOrMore( ( and_ | or_ ) + whereExpression )
 
 # Define the SQL grammar    TODO - make funcsList work
-selectStmt <<= (SELECT + ('*' | Group(columnNameList + Optional(AS + ident)) | funcsList)("columns") + \
-                FROM + Group(tableNameList + Optional(AS + ident))( "tables" ) + \
+selectStmt <<= (SELECT + ('*' | Group(delimitedList(Group(columnName + Optional(AS + ident)))) | funcs + "(" + columnName + ")")("columns") + \
+                FROM + Group(delimitedList(Group(tableName + Optional(AS + ident))))( "tables" ) + \
                 Optional(Group(WHERE + whereExpression), "")("where")) + \
                 Optional((UNION + selectStmt)("union") | (INTERSECT + selectStmt)("intersect") | (EXCEPT + selectStmt)("except") | (CONTAINS + selectStmt)("contains")) 
 
@@ -71,9 +71,35 @@ SQLParser = selectStmt # TODO - make paranthesies optional around a selectStmt (
 
 # Tests
 if __name__ == "__main__":
-    test = "SELECT D.sdf AS something FROM Sailors AS S2 WHERE R.sid = 2 and S2.rating = 10 GROUP BY D.sdf Having D.sdf > 5"
+    test = "SELECT A, B as r, C FROM Sailors as T, Boats WHERE R.sid = 2 and S2.rating = 10 GROUP BY D.sdf Having D.sdf > 5"
     try:
         print(test, "\n-----\n", SQLParser.parseString(test))
+        parsedQuery = SQLParser.parseString(test)
     except Exception as e:
         print("Syntax Error parsing: " + test)
         print(e)
+    
+    # attributes: list of attributes and their type (comes after select)
+    attributes = parsedQuery[1]
+    print(attributes)
+    # List of tables being used
+    tables = parsedQuery[3]
+    print(tables)
+
+    # Define the schema
+    sailors = (
+        ("sid", "int"),
+        ("sname", "str"),
+        ("rating", "int"),
+        ("age", "real")
+    )
+    boats = (
+        ("bid", "int"),
+        ("bname", "str"),
+        ("color", "str")
+    )
+    reserves = (
+        ("sid", "int"),
+        ("bid", "int"),
+        ("day", "date")
+    )
