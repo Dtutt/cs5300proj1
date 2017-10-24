@@ -69,7 +69,7 @@ selectStmt <<= (SELECT + ('*' | Group(delimitedList(Group( (funcs | columnName )
 
 SQLParser = selectStmt # TODO - make paranthesies optional around a selectStmt (test h)
 
-# Tests
+# Begin validation
 if __name__ == "__main__":
     test = "SELECT sid, sname as s, max(rating), E FROM Sailors as T, Boats WHERE count(r) = 2 and S2.rating = 10 GROUP BY D.sdf Having count(d) > 5 or max(R) = 5"
     try:
@@ -149,4 +149,15 @@ if __name__ == "__main__":
             print(attr + " is in the table " + attrTableName)
             # Build list of attr, table pairs
             attrTablePairs.append((attr, attrTableName))
-    print(attrTablePairs)
+    
+    # Check to see if the corresponding table is being used in the query
+    for pair in attrTablePairs:
+        beingUsed = False
+        for table in tables:
+            if (pair[1] == str(table[0].upper())):
+                beingUsed = True
+                break
+        if (beingUsed == False):
+            # Attribute is invalid as the table is belongs to is not being used in the query
+            print(str(pair[0]) + " is invalid as the table it belongs to (" + str(pair[1]) + ") is not being used in the query.")
+                
