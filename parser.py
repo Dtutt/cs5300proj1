@@ -105,18 +105,19 @@ if __name__ == "__main__":
         ("day", "date")
     )
 
-    # Check if the tables and attributes are valid according to the schema
+    # Check if the table used in the query are valid based on the schema
     for item in tables:
         if (str(item[0]).upper() != sailors[0][1].upper()) and (str(item[0]).upper() != reserves[0][1].upper()) and (str(item[0]).upper() != boats[0][1].upper()):
             print(item[0] + " is not a table in the schema.")
+            # Do something since a table is invalid
     
     # Check if the select attributes are valid according to the schema and what tables are being used in the query
-    print(attributes)
-    # iterate through each attributes
-    # Check if it's a built-in function, if it is then get the 2 index (that will be the attribute)
-    # If it's not a build in function, then get the 0 index (that will be the attribute)
-    # Check if that attribute is in any of the tables
-    # If it is, make sure that table is being used in the query (check if the table is in 'tables')
+    # - Iterate through each attributes
+    # - Check if it's a built-in function, if it is then get the 2 index (that will be the attribute)
+    # - If it's not a build in function, then get the 0 index (that will be the attribute)
+    # - Check if that attribute is in any of the tables
+    # - If it is, make sure that table is being used in the query (check if the table is in 'tables')
+    attrTablePairs = []
     for attribute in attributes:
         # Extract the correct attribute
         if (str(attribute[0]).upper() == "COUNT") or (str(attribute[0]).upper() == "MAX") or (str(attribute[0]).upper() == "AVG") or (str(attribute[0]).upper() == "SUM"):
@@ -125,18 +126,27 @@ if __name__ == "__main__":
             attr = attribute[0]
         # Check if the attribute is in any of the tables in the schema
         isInTable = False
+        attrTableName = ""
         for item in sailors:
             if (item[0].upper() == attr):
                 isInTable = True
+                attrTableName = "SAILORS"
                 break
         for item in boats:
             if (item[0].upper() == attr):
                 isInTable = True
+                attrTableName = "BOATS"
                 break
         for item in reserves:
             if (item[0].upper() == attr):
                 isInTable = True
+                attrTableName = "RESERVES"
                 break
         if (isInTable == False):
             print(attr + " is not an attribute in the schema.")
-        print(attr + str(isInTable))
+            # Do something since an attribute is invalid
+        else:
+            print(attr + " is in the table " + attrTableName)
+            # Build list of attr, table pairs
+            attrTablePairs.append((attr, attrTableName))
+    print(attrTablePairs)
