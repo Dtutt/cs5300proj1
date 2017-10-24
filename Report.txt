@@ -1,0 +1,14 @@
+Syntax
+Relational Algebra Symbol | What we use
+σ                         | (select)
+π                         | (projection)
+ρ                         | (rename)
+ℑ                         | (script F)
+
+Parser reasoning
+
+
+SQL->RA reasoning
+
+
+RA->Tree reasoning
