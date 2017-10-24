@@ -71,9 +71,9 @@ SQLParser = selectStmt # TODO - make paranthesies optional around a selectStmt (
 
 # Begin validation
 if __name__ == "__main__":
-    test = "SELECT sid, sname as s, max(rating), E FROM Sailors as T, Boats WHERE count(r) = 2 and S2.rating = 10 GROUP BY D.sdf Having count(d) > 5 or max(R) = 5"
+    test = "SELECT sid, sname as s, max(rating), E FROM Sailors as T, Boats WHERE count(sid) = 2 and S2.rating = 10 and sid = 4 GROUP BY sid Having count(d) > 5 or max(R) = 5"
     try:
-        #print(test, "\n-----\n", SQLParser.parseString(test))
+        print(test, "\n-----\n", SQLParser.parseString(test), "\n")
         parsedQuery = SQLParser.parseString(test)
     except Exception as e:
         print("Syntax Error parsing: " + test)
@@ -160,4 +160,50 @@ if __name__ == "__main__":
         if (beingUsed == False):
             # Attribute is invalid as the table is belongs to is not being used in the query
             print(str(pair[0]) + " is invalid as the table it belongs to (" + str(pair[1]) + ") is not being used in the query.")
-                
+        
+
+    # Check if the attributes being used in the WHERE stmnt are valid
+    # - Check if WHERE stmnt exists
+    if (len(parsedQuery) >= 5):
+        whereExp = parsedQuery[4]
+        for exp in whereExp:
+            if (exp != "WHERE" and exp != "AND" and exp != "OR"):
+                if (exp[0] == "GROUP BY"):
+                    valid = False
+                    for attr in attrTablePairs:
+                        if (str(exp[1]).upper() == str(attr[0]).upper()):
+                            valid = True
+                            break
+                    if (valid == False):
+                        print(exp[1] + " in the group by clause is not a valid attribute")
+                    if ( len(exp) >= 3 ):
+                        if (str(exp[2]).upper() == "HAVING"):
+                            print("")
+                else:
+                    if (exp[0] == "COUNT" or exp[0] == "MAX" or exp[0] == "AVG" or exp[0] == "SUM"):
+                        # Check if the attribute is valid
+                        valid = False
+                        for attr in attrTablePairs:
+                            if (str(exp[2]).upper() == str(attr[0]).upper()):
+                                valid = True
+                                break
+                        if (valid == False):
+                            print(exp[2] + " in the where clause is not a valid attribute")
+                    elif ("." in exp[0]):
+                        # Check if the attribute is valid
+                        valid = False
+                        for attr in attrTablePairs:
+                            if (str(exp[0]).split(".")[1] == str(attr[0].upper())):
+                                valid = True
+                                break
+                        if (valid == False):
+                            print(exp[0] + " in the where clause is not a valid attribute")
+                    else:
+                        # Check if the attribute is valid
+                        valid = False
+                        for attr in attrTablePairs:
+                            if (str(exp[0].upper()) == str(attr[0]).upper()):
+                                valid = True
+                                break
+                        if (valid == False):
+                            print(exp[0] + " in the where clause is not a valid attribute")
