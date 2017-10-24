@@ -33,7 +33,7 @@ columnNameList = Group( delimitedList( columnName ))
 tableName = ( delimitedList( ident, ".", combine=True ) ).setName("table name").addParseAction(upcaseTokens)
 tableNameAs = ( delimitedList( ident + " " + AS + " " + ident, ",", combine=True ) ).setName("table name").addParseAction(upcaseTokens)
 tableNameList = delimitedList( tableName )
-funcs = (COUNT | MAX | AVG | SUM)
+funcs = ((COUNT | MAX | AVG | SUM) + "(" + ( "*" | columnName ) + ")")
 
 whereExpression = Forward()
 and_ = Keyword("and", caseless=True).addParseAction(upcaseTokens)
@@ -54,15 +54,16 @@ intNum = Combine( Optional(arithSign) + Word( nums ) +
 
 columnRval = realNum | intNum | quotedString | columnName
 whereCondition = Group(
-    ( columnName + binop + columnRval ) | # TODO - Add functionality so Count(F) = 4 etc. works
+    ( funcs + binop + columnRval ) |
+    ( columnName + binop + columnRval ) |
     ( columnName + in_ + "(" + delimitedList( columnRval ) + ")" ) |
     ( columnName + in_ + "(" + selectStmt + ")" ) |
     ( "(" + whereExpression + ")" )
     )
-whereExpression << whereCondition + Optional(Group(GROUP_BY + columnName + Optional(HAVING + Group(columnName + binop + columnRval)))) + ZeroOrMore( ( and_ | or_ ) + whereExpression )
+whereExpression << whereCondition + Optional(Group(GROUP_BY + columnName + Optional(HAVING + Group((funcs + binop + columnRval) | (columnName + binop + columnRval)) + ZeroOrMore(( and_ | or_ ) + Group( (funcs + binop + columnRval) | (columnName + binop + columnRval)))))) + ZeroOrMore( ( and_ | or_ ) + whereExpression )
 
-# Define the SQL grammar    TODO - make funcsList work
-selectStmt <<= (SELECT + ('*' | Group(delimitedList(Group(columnName + Optional(AS + ident)))) | funcs + "(" + columnName + ")")("columns") + \
+# Define the SQL grammar
+selectStmt <<= (SELECT + ('*' | Group(delimitedList(Group( (funcs | columnName ) + Optional(AS + ident)))))("columns") + \
                 FROM + Group(delimitedList(Group(tableName + Optional(AS + ident))))( "tables" ) + \
                 Optional(Group(WHERE + whereExpression), "")("where")) + \
                 Optional((UNION + selectStmt)("union") | (INTERSECT + selectStmt)("intersect") | (EXCEPT + selectStmt)("except") | (CONTAINS + selectStmt)("contains")) 
@@ -71,7 +72,7 @@ SQLParser = selectStmt # TODO - make paranthesies optional around a selectStmt (
 
 # Tests
 if __name__ == "__main__":
-    test = "SELECT A, B as r, C FROM Sailors as T, Boats WHERE R.sid = 2 and S2.rating = 10 GROUP BY D.sdf Having D.sdf > 5"
+    test = "SELECT count(D), T, max(R), E FROM Sailors as T, Boats WHERE count(r) = 2 and S2.rating = 10 GROUP BY D.sdf Having count(d) > 5 or max(R) = 5"
     try:
         print(test, "\n-----\n", SQLParser.parseString(test))
         parsedQuery = SQLParser.parseString(test)
