@@ -293,15 +293,20 @@ def sqlparse(sql):
 
         if rename:
             Rastr = renastr + "]" + Rastr
-
+        Rastr+="]"
         # WHERE conversion
+        wheref=False
         for attr in whereExp:
+            #if agg function detected
             aggfunc1 = False
             aggfunc2 = False
+            #checks if and/or found
             if str(attr) == "AND" or str(attr) == 'OR':
                 Rastr = Rastr + str(attr) + " "
+            # checks for where statement and converts to select
             elif str(attr) == "WHERE":
-                Rastr = Rastr + '](Select)['
+                Rastr = Rastr + '(Select)['
+                whereF=True
             else:
                 for item in attr:
                     if item in Aggfunc:
@@ -322,7 +327,8 @@ def sqlparse(sql):
                             Rastr = Rastr + str(item) + ' '
                 if aggfunc2:
                     Rastr = Rastr + ')'
-        Rastr = Rastr + ']'
+        if wheref:
+            Rastr = Rastr + ']'
         # FROM conversion of SQL
         Rastr = Rastr + '['
         first = True
