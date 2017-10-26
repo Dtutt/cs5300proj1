@@ -262,83 +262,87 @@ def sqlparse(sql):
     first = True
     rename = False
     # SELECT conversion
-    for column in parsedQuery[1]:
-        if first:
-            if str(column[0]) in Aggfunc:
-                Rastr = Rastr + str(column[0]) + '(' + str(column[2]) + ')'
-            else:
-                Rastr = Rastr + str(column[0])
-            first = False
-        else:
-            if str(column[0]) in Aggfunc:
-                Rastr = Rastr + ',' + str(column[0]) + '(' + str(column[2]) + ')'
-            else:
-                Rastr = Rastr + ',' + str(column[0])
-
-        # Rename Set
-        found=False
-        if column.__len__() > 1:
-            if 'AS' in str(column):
-                for item in (column):
-                    if str(item)=="AS":
-                        found=True
-                    elif found:
-                        if rename:
-                            renastr = renastr + ',' + str(column[2])
-                        else:
-                            renastr = "(Rename)" + "[" + str(column[2]) + '<-' + str(column[0]) + ','
-                            rename = True
-                        found=False
-
-    if rename:
-        Rastr = renastr + "]" + Rastr
-
-    # WHERE conversion
-    for attr in whereExp:
-        aggfunc1 = False
-        aggfunc2 = False
-        if str(attr) == "AND" or str(attr) == 'OR':
-            Rastr = Rastr + str(attr) + " "
-        elif str(attr) == "WHERE":
-            Rastr = Rastr + '](Select)['
-        else:
-            for item in attr:
-                if item in Aggfunc:
-                    Rastr = Rastr + str(attr[0]) + '(' + str(attr[2]) + ')' + ' = ' + str(attr[5]) + ' '
-                    aggfunc1 = True
-                elif str(item) in Aggfunc2:
-                    Rastr = Rastr + str(item) + '('
-                    aggfunc2 = True
+    try:
+        for column in parsedQuery[1]:
+            if first:
+                if str(column[0]) in Aggfunc:
+                    Rastr = Rastr + str(column[0]) + '(' + str(column[2]) + ')'
                 else:
-                    if aggfunc2:
-                        if item[0] in Aggfunc:
-                            Rastr = Rastr + str(item[0]) + '(' + str(item[2]) + ')' + '=' + str(item[5]) + ' '
-                        elif str(item) == "AND" or str(item) == "OR":
-                            Rastr = Rastr + str(item) + " "
-                        else:
-                            Rastr = Rastr + str(item) + ') '
-                    elif not aggfunc1:
-                        Rastr = Rastr + str(item) + ' '
-            if aggfunc2:
-                Rastr = Rastr + ')'
-    Rastr = Rastr + ']'
-    # FROM conversion of SQL
-    Rastr = Rastr + '['
-    first = True
-    for table in tables:
-        if first:
-            if table.__len__() == 1:
-                Rastr = Rastr + str(table[0])
+                    Rastr = Rastr + str(column[0])
+                first = False
             else:
-                Rastr = Rastr + '(Rename)[' + str(table[2]) + ']' + str(table[0])
-            first = False
-        else:
-            if table.__len__() == 1:
-                Rastr = Rastr + ' x ' + str(table[0])
-            else:
-                Rastr = Rastr + 'x (Rename)[' + str(table[2]) + ']' + str(table[0])
+                if str(column[0]) in Aggfunc:
+                    Rastr = Rastr + ',' + str(column[0]) + '(' + str(column[2]) + ')'
+                else:
+                    Rastr = Rastr + ',' + str(column[0])
 
-    Rastr = Rastr + ']'
-    print(Rastr)
+            # Rename Set
+            found=False
+            if column.__len__() > 1:
+                if 'AS' in str(column):
+                    for item in (column):
+                        if str(item)=="AS":
+                            found=True
+                        elif found:
+                            if rename:
+                                renastr = renastr + ',' + str(column[2])
+                            else:
+                                renastr = "(Rename)" + "[" + str(column[2]) + '<-' + str(column[0]) + ','
+                                rename = True
+                            found=False
+
+        if rename:
+            Rastr = renastr + "]" + Rastr
+
+        # WHERE conversion
+        for attr in whereExp:
+            aggfunc1 = False
+            aggfunc2 = False
+            if str(attr) == "AND" or str(attr) == 'OR':
+                Rastr = Rastr + str(attr) + " "
+            elif str(attr) == "WHERE":
+                Rastr = Rastr + '](Select)['
+            else:
+                for item in attr:
+                    if item in Aggfunc:
+                        Rastr = Rastr + str(attr[0]) + '(' + str(attr[2]) + ')' + ' = ' + str(attr[5]) + ' '
+                        aggfunc1 = True
+                    elif str(item) in Aggfunc2:
+                        Rastr = Rastr + str(item) + '('
+                        aggfunc2 = True
+                    else:
+                        if aggfunc2:
+                            if item[0] in Aggfunc:
+                                Rastr = Rastr + str(item[0]) + '(' + str(item[2]) + ')' + '=' + str(item[5]) + ' '
+                            elif str(item) == "AND" or str(item) == "OR":
+                                Rastr = Rastr + str(item) + " "
+                            else:
+                                Rastr = Rastr + str(item) + ') '
+                        elif not aggfunc1:
+                            Rastr = Rastr + str(item) + ' '
+                if aggfunc2:
+                    Rastr = Rastr + ')'
+        Rastr = Rastr + ']'
+        # FROM conversion of SQL
+        Rastr = Rastr + '['
+        first = True
+        for table in tables:
+            if first:
+                if table.__len__() == 1:
+                    Rastr = Rastr + str(table[0])
+                else:
+                    Rastr = Rastr + '(Rename)[' + str(table[2]) + ']' + str(table[0])
+                first = False
+            else:
+                if table.__len__() == 1:
+                    Rastr = Rastr + ' x ' + str(table[0])
+                else:
+                    Rastr = Rastr + 'x (Rename)[' + str(table[2]) + ']' + str(table[0])
+
+        Rastr = Rastr + ']'
+        print(Rastr)
+    except Exception as e:
+        Rast=""
+        print("Error:",e)
     return Rastr
 
