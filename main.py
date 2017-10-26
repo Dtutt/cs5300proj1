@@ -9,7 +9,6 @@
 
 # Imports
 import sqlparser
-import SQLRA
 loop=True
 
 
@@ -23,7 +22,6 @@ while loop:
         #SQL=input("Enter SQL query")
         SQL="SELECT sid, sname as s, max(rating), E FROM Sailors as T, Boats WHERE count(sid) = 2 and S2.rating = 10 and sid = 4 GROUP BY sid Having count(d) > 5 or max(R) = 5"
         RAstr=sqlparser.sqlparse(SQL)
-        #tree=RA_Tree(RAstr)
         loop=False
     elif choice=='2':
         loop=False
