@@ -9,19 +9,21 @@
 
 # Imports
 import sqlparser
+import treeRA
 loop=True
 
-
-
+#control for program
 while loop:
     print("1. Run Query")
     print("2. End")
-    #choice = input("enter number of option")
+    choice = input("enter number of option ")
     choice='1'
     if choice=='1':
-        #SQL=input("Enter SQL query")
-        SQL="SELECT sid, sname as s, max(rating), E FROM Sailors as T, Boats WHERE count(sid) = 2 and S2.rating = 10 and sid = 4 GROUP BY sid Having count(d) > 5 or max(R) = 5"
+        SQL=input("Enter SQL query ")
+        print("\nRelational Algebra Expression")
         RAstr=sqlparser.sqlparse(SQL)
+        print("\n\n Relational Algebra Tree")
+        treeRA.ratree(RAstr)
         loop=False
     elif choice=='2':
         loop=False
